@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model BanHang {
+  id                      Int                       @unique
+  trainingTime            Int                       @default(0)
+  NhanVien                NhanVien                  @relation(fields: [id], references: [id], onDelete: Cascade)
+  donHang_SaleTai_CuaHang donHang_SaleTai_CuaHang[]
+}
+
+model CuaHang {
+  id                            Int                             @id @default(autoincrement())
+  name                          String?                         @db.NVarChar(50)
+  address                       String?
+  managerId                     Int?
+  startTime                     DateTime                        @default(dbgenerated("07:00:00")) @db.Time
+  endTime                       DateTime                        @default(dbgenerated("22:00:00")) @db.Time
+  monitorStoreId                Int?
+  QuanLy                        QuanLy?                         @relation(fields: [managerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  CuaHang                       CuaHang?                        @relation("CuaHangToCuaHang", fields: [monitorStoreId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_CuaHang                 CuaHang[]                       @relation("CuaHangToCuaHang")
+  donHang_SaleTai_CuaHang       donHang_SaleTai_CuaHang[]
+  nhaCungCap_NguyenLieu_CuaHang nhaCungCap_NguyenLieu_CuaHang[]
+  NhanVien                      NhanVien[]
+  sanPham_Tai_CuaHang           sanPham_Tai_CuaHang[]
+  SoDienThoaiCuaHang            SoDienThoaiCuaHang?
+  ThietBi                       ThietBi?
+}
+
+model CheBien {
+  id         Int      @unique
+  kinhNghiem Int?
+  vaiTro     String?  @db.NVarChar(100)
+  NhanVien   NhanVien @relation(fields: [id], references: [id], onDelete: Cascade)
+}
+
+model DonHang {
+  id                      Int                      @id
+  orderTime               DateTime                 @default(now())
+  paymentMethod           String                   @db.NVarChar(100)
+  donHang_SaleTai_CuaHang donHang_SaleTai_CuaHang?
+  sanPham_Tren_DonHang    sanPham_Tren_DonHang[]
+}
+
+model donHang_SaleTai_CuaHang {
+  salerId Int
+  orderId Int     @id
+  storeId Int
+  number  Int
+  cost    Float   @db.Money
+  DonHang DonHang @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  BanHang BanHang @relation(fields: [salerId], references: [id], onUpdate: NoAction)
+  CuaHang CuaHang @relation(fields: [storeId], references: [id], onUpdate: NoAction)
+}
+
+model DoUong {
+  id         Int         @unique
+  buyDate    DateTime    @default(now())
+  endDate    DateTime    @default(now())
+  cost       Float       @default(0) @db.Money
+  supplierId Int?
+  SanPham    SanPham     @relation(fields: [id], references: [id], onDelete: Cascade)
+  NhaCungCap NhaCungCap? @relation(fields: [supplierId], references: [id])
+}
+
+model MonAn {
+  id      Int     @unique
+  size    String? @db.NVarChar(20)
+  SanPham SanPham @relation(fields: [id], references: [id], onDelete: Cascade)
+}
+
+model NguyenLieu {
+  id                            Int                             @id @default(autoincrement())
+  name                          String
+  type                          String                          @db.NVarChar(500)
+  buyDate                       DateTime                        @default(now())
+  endDate                       DateTime                        @default(now())
+  number                        Decimal                         @default(0) @db.Decimal(5, 2)
+  unit                          String                          @db.NVarChar(20)
+  cost                          Float                           @default(0) @db.Money
+  nhaCungCap_NguyenLieu_CuaHang nhaCungCap_NguyenLieu_CuaHang[]
+}
+
+model NhaCungCap {
+  id                            Int                             @id @default(autoincrement())
+  name                          String                          @db.NVarChar(500)
+  address                       String?                         @db.NVarChar(500)
+  email                         String?                         @db.NVarChar(100)
+  DoUong                        DoUong[]
+  nhaCungCap_NguyenLieu_CuaHang nhaCungCap_NguyenLieu_CuaHang[]
+  SoDienThoaiNhaCungCap         SoDienThoaiNhaCungCap?
+}
+
+model nhaCungCap_NguyenLieu_CuaHang {
+  storeId      Int
+  supplierId   Int
+  ingredientId Int
+  NguyenLieu   NguyenLieu @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  CuaHang      CuaHang    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  NhaCungCap   NhaCungCap @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@id([storeId, supplierId, ingredientId])
+}
+
+model NhanVien {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.NVarChar(50)
+  age       Int      @default(18)
+  salary    Float?   @db.Money
+  startDate DateTime @default(now())
+  phone     String?  @db.NVarChar(20)
+  role      String?  @db.NVarChar(50)
+  dayOff    Int      @default(0)
+  storeId   Int?
+  BanHang   BanHang?
+  CheBien   CheBien?
+  CuaHang   CuaHang? @relation(fields: [storeId], references: [id])
+  QuanLy    QuanLy?
+}
+
+model QuanLy {
+  id       Int       @unique
+  degree   String?   @db.NVarChar(500)
+  CuaHang  CuaHang[]
+  NhanVien NhanVien  @relation(fields: [id], references: [id], onDelete: Cascade)
+}
+
+model SanPham {
+  id                   Int                    @id @default(autoincrement())
+  name                 String?                @db.NVarChar(50)
+  price                Float                  @default(0) @db.Money
+  description          String?
+  type                 String                 @db.NVarChar(100)
+  DoUong               DoUong?
+  MonAn                MonAn?
+  sanPham_Tai_CuaHang  sanPham_Tai_CuaHang[]
+  sanPham_Tren_DonHang sanPham_Tren_DonHang[]
+}
+
+model sanPham_Tai_CuaHang {
+  storeId   Int
+  productId Int
+  number    Int
+  SanPham   SanPham @relation(fields: [productId], references: [id])
+  CuaHang   CuaHang @relation(fields: [storeId], references: [id])
+
+  @@id([storeId, productId])
+}
+
+model sanPham_Tren_DonHang {
+  orderId   Int
+  productId Int
+  number    Int
+  cost      Float   @db.Money
+  DonHang   DonHang @relation(fields: [orderId], references: [id])
+  SanPham   SanPham @relation(fields: [productId], references: [id])
+
+  @@id([orderId, productId])
+}
+
+model SoDienThoaiCuaHang {
+  id            Int     @unique
+  privateNumber String  @db.NVarChar(20)
+  hotline       String  @db.NVarChar(20)
+  CuaHang       CuaHang @relation(fields: [id], references: [id], onDelete: Cascade)
+
+  @@id([id, privateNumber, hotline])
+}
+
+model SoDienThoaiNhaCungCap {
+  id         Int        @unique
+  number     String     @db.NVarChar(20)
+  NhaCungCap NhaCungCap @relation(fields: [id], references: [id])
+
+  @@id([id, number])
+}
+
+model ThietBi {
+  id        Int       @unique
+  type      String    @db.NVarChar(100)
+  endDate   DateTime?
+  startDate DateTime  @default(now())
+  number    Int       @default(0)
+  cost      Float     @default(0) @db.Money
+  CuaHang   CuaHang   @relation(fields: [id], references: [id], onDelete: Cascade)
+
+  @@id([id, type])
+}
