@@ -1,7 +1,7 @@
 export enum Role {
-  MANAGER = 'Quan ly',
-  SALE = 'Ban hang',
-  CHEF = 'Dau bep'
+  MANAGER = 'Quản lý',
+  SALE = 'Bán hàng',
+  CHEF = 'Đầu bếp'
 }
 
 export enum Ingredient {
