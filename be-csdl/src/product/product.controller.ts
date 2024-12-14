@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query } from '@nestjs/common';
 import { ResponseMessage } from 'src/decorators/customize';
 import { ProductService } from './product.service';
 
@@ -7,10 +7,12 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Get()
-  @ResponseMessage('Get product data successfully')
-  getAllProduct() {
-    return this.productService.findAll();
-  }
+    @ResponseMessage('Get product data successfully')
+    getAllIngredient(@Query() query: any) {
+      // Lấy 'id' từ tham số query
+      const { id } = query;
+      return this.productService.findAll(id);  // Truyền id cho service
+    }
 
   @Post()
   @ResponseMessage('Create product successfully')

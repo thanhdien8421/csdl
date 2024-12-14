@@ -9,12 +9,12 @@ export class ProductService {
     private prismaService: PrismaService
   ) {}
 
-  async findAll() {
+  async findAll(id: number) {
     try {
-      const result = await this.prismaService.$queryRaw`EXEC [dbo].[GetEmployeeData]`;
+      const result = await this.prismaService.$queryRaw`SELECT * FROM dbo.GetProductsInStore(${id})`;
       return result;
     } catch (error) {
-      throw new BadRequestException('Error fetching all employers:');
+      throw new BadRequestException('Error fetching all products:');
     }
   }
 

@@ -257,8 +257,10 @@ CREATE TABLE [dbo].[Auth] (
     [email] NVARCHAR(100) NOT NULL,
     [password] NVARCHAR(255) NOT NULL,
     [storeId] INT,
+	[role] NVARCHAR(50) NOT NULL DEFAULT 'User',
     CONSTRAINT [Auth_pkey] PRIMARY KEY CLUSTERED ([id])
 );
+
 
 -- AddForeignKey
 ALTER TABLE [dbo].[NhanVien] ADD CONSTRAINT [NhanVien_storeId_fkey] FOREIGN KEY ([storeId]) REFERENCES [dbo].[CuaHang]([id]) ON DELETE SET NULL ON UPDATE CASCADE;
@@ -574,3 +576,129 @@ BEGIN
 END
 
 --EXEC GetMonthlyRevenueByStore @storeId = 1;
+
+CREATE FUNCTION dbo.GetProductsInStore (@storeId INT)
+RETURNS TABLE
+AS
+RETURN
+(
+    SELECT 
+        sp.id AS product_id,
+        sp.name AS product_name,
+        sp.price AS product_price,
+        spc.number AS available_quantity
+    FROM 
+        dbo.SanPham sp
+    JOIN 
+        dbo.sanPham_Tai_CuaHang spc ON sp.id = spc.productId
+    WHERE 
+        spc.storeId = @storeId
+);
+
+--SELECT * FROM dbo.GetProductsInStore(1);
+
+-- Tạo hàm thêm tài khoản vào bảng Auth
+
+CREATE PROCEDURE AddAccount
+    @Email NVARCHAR(100),
+    @Password NVARCHAR(255),
+    @StoreId INT,
+    @Role NVARCHAR(50) = 'User' -- Mặc định là 'User' nếu không chỉ định
+AS
+BEGIN
+    DECLARE @HashedPassword NVARCHAR(255);
+
+    -- Băm mật khẩu trước khi lưu vào cơ sở dữ liệu
+    SET @HashedPassword = CONVERT(NVARCHAR(255), HASHBYTES('SHA2_256', CONVERT(NVARCHAR(255), @Password)), 2);
+
+    -- Thêm tài khoản vào bảng Auth với role
+    INSERT INTO [dbo].[Auth] (email, password, storeId, role)
+    VALUES (@Email, @HashedPassword, @StoreId, @Role);
+END
+GO
+-- Thêm một tài khoản mới vào bảng Auth
+--EXEC AddAccount @Email = 'user@example.com', @Password = 'password123', @StoreId = 1, @Role= 'User';
+--EXEC AddAccount @Email = 'admin@example.com', @Password = 'password', @StoreId = 1, @Role= 'Admin';
+CREATE PROCEDURE GetPasswordAndStoreIdByEmail
+    @Email NVARCHAR(100),
+    @Password NVARCHAR(255) -- Mật khẩu người dùng nhập vào
+AS
+BEGIN
+    -- Tạo băm SHA-256 cho mật khẩu người dùng nhập vào
+    DECLARE @HashedPassword NVARCHAR(255);
+    
+    SET @HashedPassword = CONVERT(NVARCHAR(255), HASHBYTES('SHA2_256', CONVERT(NVARCHAR(255), @Password)), 2);
+
+    -- Kiểm tra nếu mật khẩu đã băm trùng khớp với mật khẩu trong cơ sở dữ liệu
+    SELECT 
+        password, 
+        storeId, 
+        role
+    FROM [dbo].[Auth]
+    WHERE email = @Email AND password = @HashedPassword;
+END
+GO
+
+--EXEC GetPasswordAndStoreIdByEmail @Email = 'admin@example.com', @Password = 'password';
+-----------------------------------------thêm đơn hàng
+CREATE PROCEDURE [dbo].[ThemDonHang]
+    @salerId INT,
+    @storeId INT,
+    @paymentMethod NVARCHAR(100),
+    @orderTime DATETIME2 = NULL, -- Thời gian đặt hàng, mặc định là NULL sẽ sử dụng thời gian hiện tại
+    @productIds NVARCHAR(MAX),   -- Danh sách các productId, cách nhau bởi dấu phẩy
+    @quantities NVARCHAR(MAX)    -- Danh sách các số lượng tương ứng, cách nhau bởi dấu phẩy
+AS
+BEGIN
+    -- Nếu không truyền thời gian, mặc định là thời gian hiện tại
+    IF @orderTime IS NULL
+        SET @orderTime = CURRENT_TIMESTAMP;
+
+    -- Tạo một ID đơn hàng mới
+    DECLARE @orderId INT;
+
+    -- Thêm đơn hàng vào bảng DonHang
+    INSERT INTO [dbo].[DonHang] ([orderTime], [paymentMethod])
+    VALUES (@orderTime, @paymentMethod);
+
+    -- Lấy ID của đơn hàng vừa tạo
+    SET @orderId = SCOPE_IDENTITY();
+
+    -- Thêm thông tin của sản phẩm vào bảng sanPham_Tren_DonHang
+    DECLARE @productId INT, @quantity INT, @index INT = 1;
+    DECLARE @productIdList NVARCHAR(MAX) = @productIds;
+    DECLARE @quantityList NVARCHAR(MAX) = @quantities;
+
+    -- Tạo bảng tạm để chứa thông tin sản phẩm và số lượng
+    WHILE CHARINDEX(',', @productIdList) > 0
+    BEGIN
+        SET @productId = CAST(SUBSTRING(@productIdList, 1, CHARINDEX(',', @productIdList) - 1) AS INT);
+        SET @productIdList = SUBSTRING(@productIdList, CHARINDEX(',', @productIdList) + 1, LEN(@productIdList));
+        
+        SET @quantity = CAST(SUBSTRING(@quantityList, 1, CHARINDEX(',', @quantityList) - 1) AS INT);
+        SET @quantityList = SUBSTRING(@quantityList, CHARINDEX(',', @quantityList) + 1, LEN(@quantityList));
+
+        -- Lấy giá của sản phẩm từ bảng SanPham
+        DECLARE @cost MONEY;
+        SELECT @cost = [price] FROM [dbo].[SanPham] WHERE [id] = @productId;
+
+        -- Thêm sản phẩm vào bảng sanPham_Tren_DonHang
+        INSERT INTO [dbo].[sanPham_Tren_DonHang] ([orderId], [productId], [number], [cost])
+        VALUES (@orderId, @productId, @quantity, @cost);
+
+        SET @index = @index + 1;
+    END
+
+    -- Thêm thông tin nhân viên bán hàng và cửa hàng vào bảng donHang_SaleTai_CuaHang
+    INSERT INTO [dbo].[donHang_SaleTai_CuaHang] ([salerId], [orderId], [storeId])
+    VALUES (@salerId, @orderId, @storeId);
+
+    -- Trả về ID của đơn hàng vừa tạo
+    SELECT @orderId AS NewOrderId;
+END
+EXEC [dbo].[ThemDonHang]
+    @salerId = 1,
+    @storeId = 2,
+    @paymentMethod = 'Cash',
+    @productIds = '1,2,3',
+    @quantities = '2,3,1';

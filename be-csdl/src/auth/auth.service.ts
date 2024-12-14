@@ -1,22 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
-import { JwtService } from '@nestjs/jwt'; // Giả sử bạn dùng JWT để tạo token
+import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'prisma/prisma.service';
+import { BadRequestException } from '@nestjs/common';
+
 @Injectable()
 export class AuthService {
   constructor(private readonly jwtService: JwtService,
-    private readonly prismaService: PrismaService,) {}
+    private readonly prismaService: PrismaService) {}
 
   // Phương thức login xử lý đăng nhập
   async login(data: LoginDto) {
     try {
       console.log('Login data:', JSON.stringify(data, null, 2)); // In dữ liệu
       const user = await this.validateUser(data);
-  
+
       if (!user) {
         throw new Error('Invalid credentials');
       }
-  
+
       const token = this.jwtService.sign({ userId: user.id });
       return { user, token };
     } catch (error) {
@@ -25,17 +27,30 @@ export class AuthService {
     }
   }
 
-  // Giả sử bạn có một phương thức để xác thực người dùng (từ cơ sở dữ liệu)
+  // Phương thức validateUser để xác thực người dùng và so sánh mật khẩu
   private async validateUser(data: LoginDto) {
-    // Logic kiểm tra người dùng trong database
-    // Đây chỉ là ví dụ, bạn cần thêm logic để tìm người dùng trong database
-    // id trả về là store id
-    if (data.email === 'admin@example.com' && data.password === 'password') {
-      return { id: 1, email: 'admin@example.com', role: 'Admin' }; // Thông tin người dùng
+    try {
+      // Truy vấn mật khẩu và thông tin người dùng từ cơ sở dữ liệu
+      const result = await this.prismaService.$queryRaw`
+        EXEC GetPasswordAndStoreIdByEmail @Email = ${data.email}, @Password = ${data.password}
+      `;
+
+      if (!result) {
+        throw new BadRequestException('Invalid credentials');
+      }
+
+      const user = result[0];
+    
+
+      // Nếu mật khẩu hợp lệ, trả về thông tin người dùng
+      return {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      };
+    } catch (error) {
+      console.error('Error in validateUser:', error.message);
+      throw new BadRequestException('Error validating user credentials');
     }
-    else if (data.email === 'user@example.com' && data.password === 'password') {
-      return { id: 2, email: 'user@example.com', role: 'User' };
-    }
-    return null; // Không tìm thấy người dùng
   }
 }
