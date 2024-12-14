@@ -2,6 +2,10 @@ import { IsDate, IsNumber, IsOptional, IsPositive, IsString } from 'class-valida
 import { Type } from 'class-transformer';
 
 export class CreateIngredientDto {
+  @IsNumber()
+  @IsPositive()
+  storeId?: number;
+
   @IsString()
   name: string;
 
@@ -31,4 +35,7 @@ export class CreateIngredientDto {
   @IsNumber()
   @IsPositive()
   cost?: number;
+
+  @IsString()
+  supplierName: string;
 }

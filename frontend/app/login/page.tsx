@@ -71,7 +71,7 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = () => {
-  const { login, isLoggingIn, isAuthenticated: authStatus, token } = useAuth();
+  const { login, isLoggingIn, isAuthenticated: authStatus, token, user } = useAuth();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const router = useRouter(); // Dùng useRouter thay cho useNavigate
@@ -84,9 +84,14 @@ const Login: React.FC<LoginProps> = () => {
   useEffect(() => {
     // Kiểm tra xem người dùng đã đăng nhập chưa
     if (authStatus) {
-      router.push("/list"); // Chuyển hướng đến trang sau khi đăng nhập thành công
+      if (user?.role === 'Admin') {
+      router.push("/home"); // Chuyển hướng đến trang sau khi đăng nhập thành công
+      }
+      else {
+        router.push("/order"); // Chuyển hướng đến trang sau khi đăng nhập thành cong
+      }
     }
-  }, [authStatus, router, token]);
+  }, [authStatus, router, token, user]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">

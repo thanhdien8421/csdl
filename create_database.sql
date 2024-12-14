@@ -138,7 +138,7 @@ CREATE TABLE [dbo].[SoDienThoaiCuaHang] (
     [privateNumber] NVARCHAR(20) NOT NULL,
     [hotline] NVARCHAR(20) NOT NULL,
     CONSTRAINT [SoDienThoaiCuaHang_pkey] PRIMARY KEY CLUSTERED ([id],[privateNumber],[hotline]),
-    CONSTRAINT [SoDienThoaiCuaHang_id_key] UNIQUE NONCLUSTERED ([id])
+    --CONSTRAINT [SoDienThoaiCuaHang_id_key] UNIQUE NONCLUSTERED ([id])
 );
 
 -- CreateTable
@@ -150,7 +150,7 @@ CREATE TABLE [dbo].[ThietBi] (
     [number] INT NOT NULL CONSTRAINT [ThietBi_number_df] DEFAULT 0,
     [cost] MONEY NOT NULL CONSTRAINT [ThietBi_cost_df] DEFAULT 0,
     CONSTRAINT [ThietBi_pkey] PRIMARY KEY CLUSTERED ([id],[type]),
-    CONSTRAINT [ThietBi_id_key] UNIQUE NONCLUSTERED ([id])
+    --CONSTRAINT [ThietBi_id_key] UNIQUE NONCLUSTERED ([id])
 );
 
 -- CreateTable
@@ -215,7 +215,7 @@ CREATE TABLE [dbo].[SoDienThoaiNhaCungCap] (
     [id] INT NOT NULL,
     [number] NVARCHAR(20) NOT NULL,
     CONSTRAINT [SoDienThoaiNhaCungCap_pkey] PRIMARY KEY CLUSTERED ([id],[number]),
-    CONSTRAINT [SoDienThoaiNhaCungCap_id_key] UNIQUE NONCLUSTERED ([id])
+    --CONSTRAINT [SoDienThoaiNhaCungCap_id_key] UNIQUE NONCLUSTERED ([id])
 );
 
 -- CreateTable
@@ -240,8 +240,6 @@ CREATE TABLE [dbo].[donHang_SaleTai_CuaHang] (
     [salerId] INT NOT NULL,
     [orderId] INT NOT NULL,
     [storeId] INT NOT NULL,
-    [number] INT NOT NULL,
-    [cost] MONEY NOT NULL,
     CONSTRAINT [donHang_SaleTai_CuaHang_pkey] PRIMARY KEY CLUSTERED ([orderId])
 );
 
@@ -251,6 +249,15 @@ CREATE TABLE [dbo].[nhaCungCap_NguyenLieu_CuaHang] (
     [supplierId] INT NOT NULL,
     [ingredientId] INT NOT NULL,
     CONSTRAINT [nhaCungCap_NguyenLieu_CuaHang_pkey] PRIMARY KEY CLUSTERED ([storeId],[supplierId],[ingredientId])
+);
+
+-- CreateTable
+CREATE TABLE [dbo].[Auth] (
+    [id] INT NOT NULL IDENTITY(1,1),
+    [email] NVARCHAR(100) NOT NULL,
+    [password] NVARCHAR(255) NOT NULL,
+    [storeId] INT,
+    CONSTRAINT [Auth_pkey] PRIMARY KEY CLUSTERED ([id])
 );
 
 -- AddForeignKey
@@ -318,6 +325,9 @@ ALTER TABLE [dbo].[nhaCungCap_NguyenLieu_CuaHang] ADD CONSTRAINT [nhaCungCap_Ngu
 
 -- AddForeignKey
 ALTER TABLE [dbo].[nhaCungCap_NguyenLieu_CuaHang] ADD CONSTRAINT [nhaCungCap_NguyenLieu_CuaHang_ingredientId_fkey] FOREIGN KEY ([ingredientId]) REFERENCES [dbo].[NguyenLieu]([id]) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE [dbo].[Auth] ADD CONSTRAINT [Auth_storeId_fkey] FOREIGN KEY ([storeId]) REFERENCES [dbo].[CuaHang]([id]) ON DELETE SET NULL ON UPDATE CASCADE;
 GO
 --create Function ở đây
 CREATE FUNCTION [dbo].[Example]()
@@ -333,3 +343,234 @@ AS
 	SELECT * FROM [dbo].[Example]()
 	END
 GO
+
+CREATE FUNCTION dbo.GetNguyenLieuNhaCungCapByStoreId (@storeId INT)
+RETURNS TABLE
+AS
+RETURN
+(
+    SELECT 
+        nl.id AS NguyenLieuId,
+        nl.name AS NguyenLieuName,
+        nl.type AS NguyenLieuType,
+        nl.buyDate AS NguyenLieuBuyDate,
+        nl.endDate AS NguyenLieuEndDate,
+        nl.number AS NguyenLieuNumber,
+        nl.unit AS NguyenLieuUnit,
+        nl.cost AS NguyenLieuCost,
+        ncc.name AS NhaCungCapName
+    FROM 
+        dbo.NguyenLieu nl
+    JOIN 
+        dbo.nhaCungCap_NguyenLieu_CuaHang ncc_nl ON nl.id = ncc_nl.ingredientId
+    JOIN 
+        dbo.NhaCungCap ncc ON ncc.id = ncc_nl.supplierId
+    WHERE 
+        ncc_nl.storeId = @storeId
+);
+
+--SELECT * FROM dbo.GetNguyenLieuNhaCungCapByStoreId(2);
+--------------------------------------------------
+--Thủ tục cập nhật dữ liệu của nguyên liệu có ID
+CREATE PROCEDURE dbo.UpdateNguyenLieuAndNhaCungCap
+    @id INT,                      -- ID của nguyên vật liệu
+    @name NVARCHAR(1000),          -- Tên nguyên vật liệu
+    @type NVARCHAR(500),           -- Loại nguyên vật liệu
+    @buyDate DATETIME2,            -- Ngày mua
+    @endDate DATETIME2,            -- Ngày hết hạn
+    @number DECIMAL(5,2),          -- Số lượng
+    @unit NVARCHAR(20),            -- Đơn vị
+    @cost MONEY,                   -- Giá
+    @supplierName NVARCHAR(500)    -- Tên nhà cung cấp
+AS
+BEGIN
+    -- Kiểm tra xem tên nhà cung cấp có thay đổi hay không
+    DECLARE @currentSupplierName NVARCHAR(500);
+    DECLARE @supplierId INT;
+
+    -- Lấy tên nhà cung cấp hiện tại của nguyên vật liệu từ bảng nhaCungCap_NguyenLieu_CuaHang
+    SELECT @currentSupplierName = NhaCungCap.name
+    FROM dbo.nhaCungCap_NguyenLieu_CuaHang
+    INNER JOIN dbo.NhaCungCap ON NhaCungCap.id = nhaCungCap_NguyenLieu_CuaHang.supplierId
+    WHERE nhaCungCap_NguyenLieu_CuaHang.ingredientId = @id;
+
+    -- Nếu tên nhà cung cấp không thay đổi, bỏ qua việc kiểm tra
+    IF @currentSupplierName = @supplierName
+    BEGIN
+        -- Cập nhật thông tin trong bảng NguyenLieu mà không cần kiểm tra nhà cung cấp
+        UPDATE dbo.NguyenLieu
+        SET 
+            name = @name,
+            type = @type,
+            buyDate = @buyDate,
+            endDate = @endDate,
+            number = @number,
+            unit = @unit,
+            cost = @cost
+        WHERE id = @id;
+        
+        -- Không cần cập nhật nhà cung cấp trong bảng nhaCungCap_NguyenLieu_CuaHang nếu tên nhà cung cấp không thay đổi
+        RETURN;
+    END
+
+    -- Kiểm tra xem nhà cung cấp có tồn tại hay không nếu tên nhà cung cấp thay đổi
+    SELECT @supplierId = id 
+    FROM dbo.NhaCungCap
+    WHERE name = @supplierName;
+
+    -- Nếu không tìm thấy nhà cung cấp, trả về lỗi
+    IF @supplierId IS NULL
+    BEGIN
+        RAISERROR('Nhà cung cấp "%s" không tồn tại.', 16, 1, @supplierName);
+        RETURN;
+    END
+
+    -- Cập nhật thông tin trong bảng NguyenLieu
+    UPDATE dbo.NguyenLieu
+    SET 
+        name = @name,
+        type = @type,
+        buyDate = @buyDate,
+        endDate = @endDate,
+        number = @number,
+        unit = @unit,
+        cost = @cost
+    WHERE id = @id;
+
+    -- Cập nhật lại ID nhà cung cấp trong bảng nhaCungCap_NguyenLieu_CuaHang
+    UPDATE dbo.nhaCungCap_NguyenLieu_CuaHang
+    SET supplierId = @supplierId
+    WHERE ingredientId = @id;
+END;
+
+--EXEC dbo.UpdateNguyenLieuAndNhaCungCap
+    --@id = 56,                    -- ID của nguyên vật liệu cần cập nhật
+    --@name = N'Bột mì',  -- Tên mới của nguyên vật liệu
+    --@type = N'Nguyên liệu chính',         -- Loại mới của nguyên vật liệu
+    --@buyDate = '2024-01-01',     -- Ngày mua mới
+    --@endDate = '2025-01-01',     -- Ngày hết hạn mới
+    --@number = 100.00,            -- Số lượng mới
+    --@unit = 'kg',                -- Đơn vị mới
+    --@cost = 50000,             -- Giá mới
+    --@supplierName = N'Nhà Cung Cấp B';  -- Tên nhà cung cấp mới
+--------------------------------------------------
+--Thủ tục thêm mới nguyên liệu
+CREATE PROCEDURE dbo.AddNguyenLieuAndNhaCungCap
+    @storeId INT,                  -- ID cửa hàng
+    @name NVARCHAR(1000),          -- Tên nguyên vật liệu
+    @type NVARCHAR(500),           -- Loại nguyên vật liệu
+    @buyDate DATETIME2,            -- Ngày mua
+    @endDate DATETIME2,            -- Ngày hết hạn
+    @number DECIMAL(5,2),          -- Số lượng
+    @unit NVARCHAR(20),            -- Đơn vị
+    @cost MONEY,                   -- Giá
+    @supplierName NVARCHAR(500)    -- Tên nhà cung cấp
+AS
+BEGIN
+    DECLARE @supplierId INT;
+
+    -- Kiểm tra xem nhà cung cấp đã tồn tại trong bảng NhaCungCap chưa
+    SELECT @supplierId = id
+    FROM dbo.NhaCungCap
+    WHERE name = @supplierName;
+
+    -- Nếu không tìm thấy nhà cung cấp, ném lỗi
+    IF @supplierId IS NULL
+    BEGIN
+        RAISERROR('Nhà cung cấp "%s" không tồn tại.', 16, 1, @supplierName);
+        RETURN;
+    END
+
+    -- Thêm mới nguyên vật liệu vào bảng NguyenLieu
+    INSERT INTO dbo.NguyenLieu (name, type, buyDate, endDate, number, unit, cost)
+    VALUES (@name, @type, @buyDate, @endDate, @number, @unit, @cost);
+
+    -- Lấy ID của nguyên vật liệu vừa thêm vào
+    DECLARE @ingredientId INT = SCOPE_IDENTITY();
+
+    -- Liên kết nguyên vật liệu với nhà cung cấp và cửa hàng trong bảng nhaCungCap_NguyenLieu_CuaHang
+    INSERT INTO dbo.nhaCungCap_NguyenLieu_CuaHang (storeId, supplierId, ingredientId)
+    VALUES (@storeId, @supplierId, @ingredientId);  -- Sử dụng storeId được truyền 
+
+	-- Trả về ID của nguyên liệu vừa thêm
+    SELECT @ingredientId AS ingredientId;
+END;
+
+--DBCC CHECKIDENT ('NguyenLieu', NORESEED);
+--DBCC CHECKIDENT ('NguyenLieu', RESEED, 54);
+--EXEC dbo.AddNguyenLieuAndNhaCungCap
+    --@storeId = 1,                  -- ID cửa hàng
+    --@name = N'Nguyên liệu mới',     -- Tên nguyên vật liệu
+    --@type = N'Loại mới',            -- Loại nguyên vật liệu
+    --@buyDate = '2024-01-01',        -- Ngày mua
+    --@endDate = '2025-01-01',        -- Ngày hết hạn
+    --@number = 100.00,               -- Số lượng
+    --@unit = 'kg',                   -- Đơn vị
+    --@cost = 5000.00,                -- Giá
+    --@supplierName = N'Nhà cung cấp C'; -- Tên nhà cung cấp
+---------------------------------------------------------
+--Thủ tục delete nguyên liệu có id là x
+CREATE PROCEDURE dbo.DeleteNguyenLieu
+    @id INT -- ID của nguyên liệu cần xóa
+AS
+BEGIN
+    -- Khởi tạo transaction
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        -- Kiểm tra xem nguyên liệu có tồn tại trong bảng NguyenLieu không
+        IF NOT EXISTS (SELECT 1 FROM dbo.NguyenLieu WHERE id = @id)
+        BEGIN
+            -- Nếu nguyên liệu không tồn tại, trả về lỗi
+			RAISERROR('Nguyên liệu không tồn tại.', 16, 1);
+			RETURN;
+        END
+
+        -- Xóa liên kết nguyên liệu với nhà cung cấp và cửa hàng trong bảng nhaCungCap_NguyenLieu_CuaHang
+        DELETE FROM dbo.nhaCungCap_NguyenLieu_CuaHang
+        WHERE ingredientId = @id;
+
+        -- Xóa nguyên liệu trong bảng NguyenLieu
+        DELETE FROM dbo.NguyenLieu
+        WHERE id = @id;
+
+        -- Nếu tất cả các thao tác thành công, commit transaction
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        -- Nếu có lỗi xảy ra, rollback transaction
+        ROLLBACK TRANSACTION;
+
+        -- Ném lỗi lại cho người gọi
+        THROW;
+    END CATCH
+END;
+
+--EXEC dbo.DeleteNguyenLieu
+    --@id = 55;  -- ID của nguyên liệu cần xóa
+
+--thủ tục lấy doanh thu theo năm/ tháng của 1 cửa hàng
+CREATE PROCEDURE GetMonthlyRevenueByStore
+    @storeId INT
+AS
+BEGIN
+    SELECT
+        YEAR(DH.orderTime) AS Year,
+        MONTH(DH.orderTime) AS Month,
+        SUM(SPD.cost * SPD.number) AS TotalRevenue
+    FROM
+        DonHang DH
+    INNER JOIN
+        donHang_SaleTai_CuaHang DSC ON DH.id = DSC.orderId
+    INNER JOIN
+        sanPham_Tren_DonHang SPD ON DH.id = SPD.orderId
+    WHERE
+        DSC.storeId = @storeId
+    GROUP BY
+        YEAR(DH.orderTime),
+        MONTH(DH.orderTime)
+    ORDER BY
+        Year DESC, Month DESC;
+END
+
+--EXEC GetMonthlyRevenueByStore @storeId = 1;

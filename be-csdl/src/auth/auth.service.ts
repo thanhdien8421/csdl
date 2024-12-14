@@ -29,8 +29,12 @@ export class AuthService {
   private async validateUser(data: LoginDto) {
     // Logic kiểm tra người dùng trong database
     // Đây chỉ là ví dụ, bạn cần thêm logic để tìm người dùng trong database
+    // id trả về là store id
     if (data.email === 'admin@example.com' && data.password === 'password') {
-      return { id: 1, email: 'admin@example.com', name: 'Admin' }; // Thông tin người dùng
+      return { id: 1, email: 'admin@example.com', role: 'Admin' }; // Thông tin người dùng
+    }
+    else if (data.email === 'user@example.com' && data.password === 'password') {
+      return { id: 2, email: 'user@example.com', role: 'User' };
     }
     return null; // Không tìm thấy người dùng
   }

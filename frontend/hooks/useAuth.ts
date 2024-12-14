@@ -17,7 +17,7 @@ interface LoginInput {
 // Define the user structure
 interface User {
   id: string;
-  name: string;
+  role: string;
   email: string;
 }
 
@@ -37,16 +37,6 @@ export const useAuth = () => {
     setIsClient(true);
   }, []);
 
-  // Define mutation with LoginResponse and LoginInput types
-  // const loginMutation = useMutation<LoginResponse, Error, LoginInput>({
-  //   mutationFn: async (inp) => await request.post('/auth', inp),
-  //   onSuccess: (data) => {
-  //     dispatch(setCredentials(data)); // Update Redux store with user data
-  //     if (isClient) {
-  //       queryClient.invalidateQueries({ queryKey: ['user'] }); // Invalidate cache to get fresh user data
-  //     }
-  //   },
-  // });
   const loginMutation = useMutation<LoginResponse, Error, LoginInput>({
     mutationFn: async (inp) => {
       console.log("Attempting login with:", inp); // Log the input data

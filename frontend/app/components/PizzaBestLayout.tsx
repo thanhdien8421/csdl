@@ -6,6 +6,7 @@ import { ResponsiveImage } from "./ResponsiveImage";
 import { useRouter } from "next/navigation";
 
 export const PizzaBestLayout: React.FC = () => {
+  localStorage.removeItem('csdl_token');
   const router = useRouter(); // Khởi tạo useRouter
 
   const handleSignIn = React.useCallback(() => {

@@ -10,6 +10,7 @@ import { StoreModule } from './store/store.module';
 import { SupplierModule } from './supplier/supplier.module';
 import { OtherModule } from './other/other.module';
 import { AuthModule } from './auth/auth.module';
+import { revenueModule } from './revenue/revenue.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -22,7 +23,8 @@ import { AuthModule } from './auth/auth.module';
    StoreModule,
    SupplierModule,
    OtherModule,
-   AuthModule
+   AuthModule,
+   revenueModule
   ],
   controllers: [AppController],
   providers: [AppService],
