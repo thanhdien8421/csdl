@@ -1,13 +1,3 @@
-USE master;
-GO
-CREATE DATABASE [csdl]
- CONTAINMENT = NONE
- ON  PRIMARY 
-( NAME = N'csdl', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\DATA\csdl.mdf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
- LOG ON 
-( NAME = N'csdl_log', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\DATA\csdl_log.ldf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
- WITH LEDGER = OFF
-GO
 ALTER DATABASE [csdl] SET COMPATIBILITY_LEVEL = 160
 GO
 ALTER DATABASE [csdl] SET ANSI_NULL_DEFAULT OFF 
@@ -410,81 +400,12 @@ GO
 
 --create Store Procedure ở đây
 --Ví dụ
-CREATE FUNCTION [dbo].[GetEmployeeInfo] 
-(
-    @employeeId INT
-)
-RETURNS TABLE
-AS
-RETURN
-(
-    SELECT 
-        nv.id AS EmployeeId,
-        nv.name AS EmployeeName,
-        nv.birthday AS EmployeeBirthday,
-        nv.salary AS EmployeeSalary,
-        nv.startDate AS EmployeeStartDate,
-        nv.phone AS EmployeePhone,
-        nv.role AS EmployeeRole,
-        nv.dayOff AS EmployeeDayOff,
-        ql.degree AS Degree,
-        bh.trainingTime AS TrainingTime,
-        cb.kinhNghiem AS Experience,
-        cb.vaiTro AS RoleInCooking
-    FROM 
-        dbo.NhanVien nv
-    LEFT JOIN 
-        dbo.QuanLy ql ON nv.id = ql.id
-    LEFT JOIN 
-        dbo.BanHang bh ON nv.id = bh.id
-    LEFT JOIN 
-        dbo.CheBien cb ON nv.id = cb.id
-    WHERE 
-        nv.id = @employeeId
-);
---SELECT * FROM dbo.GetEmployeeInfo(1);
+CREATE PROC GetEmployeeData 
+AS 
+	BEGIN
+	SELECT * FROM [dbo].[Example]()
+	END
 GO
-CREATE FUNCTION [dbo].[GetEmployeesByStore]
-(
-    @storeId INT -- ID của cửa hàng
-)
-RETURNS TABLE
-AS
-RETURN
-(
-    SELECT 
-        nv.id AS EmployeeId,
-        nv.name AS EmployeeName,
-        nv.birthday AS EmployeeBirthday,
-        nv.salary AS EmployeeSalary,
-        nv.startDate AS EmployeeStartDate,
-        nv.phone AS EmployeePhone,
-        nv.role AS EmployeeRole,
-        nv.dayOff AS EmployeeDayOff,
-        ql.degree AS Degree,
-        bh.trainingTime AS TrainingTime,
-        cb.kinhNghiem AS Experience,
-        cb.vaiTro AS RoleInCooking
-    FROM 
-        dbo.NhanVien nv
-    LEFT JOIN 
-        dbo.QuanLy ql ON nv.id = ql.id
-    LEFT JOIN 
-        dbo.BanHang bh ON nv.id = bh.id
-    LEFT JOIN 
-        dbo.CheBien cb ON nv.id = cb.id
-    WHERE 
-        nv.storeId = @storeId -- Lọc theo cửa hàng
-);
-GO
-
-/* SELECT * 
-FROM dbo.GetEmployeesByStore(1);*/
-
-
-
-
-
 --------------------------------------------------
 --Thủ tục cập nhật dữ liệu của nguyên liệu có ID
 CREATE PROCEDURE dbo.UpdateNguyenLieuAndNhaCungCap
@@ -496,14 +417,10 @@ CREATE PROCEDURE dbo.UpdateNguyenLieuAndNhaCungCap
     @number DECIMAL(5,2),          -- Số lượng
     @unit NVARCHAR(20),            -- Đơn vị
     @cost MONEY,                   -- Giá
-    @supplierName NVARCHAR(500),    -- Tên nhà cung cấp
-	@managerId INT,
-    @storeId INT
+    @supplierName NVARCHAR(500)    -- Tên nhà cung cấp
 AS
 BEGIN
     -- Kiểm tra xem tên nhà cung cấp có thay đổi hay không
-	EXEC [sys].[sp_set_session_context] @key = N'managerId', @value = @managerId;
-    EXEC [sys].[sp_set_session_context] @key = N'storeId', @value = @storeId;
     DECLARE @currentSupplierName NVARCHAR(500);
     DECLARE @supplierId INT;
 
@@ -562,18 +479,16 @@ BEGIN
     WHERE ingredientId = @id;
 END;
 GO
-/*EXEC dbo.UpdateNguyenLieuAndNhaCungCap
-    @id = 56,                    -- ID của nguyên vật liệu cần cập nhật
-    @name = N'Bột mì',  -- Tên mới của nguyên vật liệu
-    @type = N'Nguyên liệu chính',         -- Loại mới của nguyên vật liệu
-    @buyDate = '2024-01-01',     -- Ngày mua mới
-    @endDate = '2025-01-01',     -- Ngày hết hạn mới
-    @number = 100.00,            -- Số lượng mới
-    @unit = 'kg',                -- Đơn vị mới
-    @cost = 50000,             -- Giá mới
-    @supplierName = N'Nhà Cung Cấp B',  -- Tên nhà cung cấp mới
-	@managerId = 1,
-    @storeId = 1*/
+--EXEC dbo.UpdateNguyenLieuAndNhaCungCap
+    --@id = 56,                    -- ID của nguyên vật liệu cần cập nhật
+    --@name = N'Bột mì',  -- Tên mới của nguyên vật liệu
+    --@type = N'Nguyên liệu chính',         -- Loại mới của nguyên vật liệu
+    --@buyDate = '2024-01-01',     -- Ngày mua mới
+    --@endDate = '2025-01-01',     -- Ngày hết hạn mới
+    --@number = 100.00,            -- Số lượng mới
+    --@unit = 'kg',                -- Đơn vị mới
+    --@cost = 50000,             -- Giá mới
+    --@supplierName = N'Nhà Cung Cấp B';  -- Tên nhà cung cấp mới
 --------------------------------------------------
 --Thủ tục thêm mới nguyên liệu
 CREATE PROCEDURE dbo.AddNguyenLieuAndNhaCungCap
@@ -585,12 +500,9 @@ CREATE PROCEDURE dbo.AddNguyenLieuAndNhaCungCap
     @number DECIMAL(5,2),          -- Số lượng
     @unit NVARCHAR(20),            -- Đơn vị
     @cost MONEY,                   -- Giá
-    @supplierName NVARCHAR(500),    -- Tên nhà cung cấp
-	@managerId INT
+    @supplierName NVARCHAR(500)    -- Tên nhà cung cấp
 AS
 BEGIN
-	EXEC [sys].[sp_set_session_context] @key = N'managerId', @value = @managerId;
-    EXEC [sys].[sp_set_session_context] @key = N'storeId', @value = @storeId;
     DECLARE @supplierId INT;
 
     -- Kiểm tra xem nhà cung cấp đã tồn tại trong bảng NhaCungCap chưa
@@ -622,28 +534,23 @@ END;
 GO
 --DBCC CHECKIDENT ('NguyenLieu', NORESEED);
 --DBCC CHECKIDENT ('NguyenLieu', RESEED, 54);
-/*EXEC dbo.AddNguyenLieuAndNhaCungCap
-    @storeId = 1,                  -- ID cửa hàng
-    @name = N'Nguyên liệu mới',     -- Tên nguyên vật liệu
-    @type = N'Loại mới',            -- Loại nguyên vật liệu
-    @buyDate = '2024-01-01',        -- Ngày mua
-    @endDate = '2025-01-01',        -- Ngày hết hạn
-    @number = 100.00,               -- Số lượng
-    @unit = 'kg',                   -- Đơn vị
-    @cost = 5000.00,                -- Giá
-    @supplierName = N'Nhà cung cấp C', -- Tên nhà cung cấp
-	@managerId = 1;*/
+--EXEC dbo.AddNguyenLieuAndNhaCungCap
+    --@storeId = 1,                  -- ID cửa hàng
+    --@name = N'Nguyên liệu mới',     -- Tên nguyên vật liệu
+    --@type = N'Loại mới',            -- Loại nguyên vật liệu
+    --@buyDate = '2024-01-01',        -- Ngày mua
+    --@endDate = '2025-01-01',        -- Ngày hết hạn
+    --@number = 100.00,               -- Số lượng
+    --@unit = 'kg',                   -- Đơn vị
+    --@cost = 5000.00,                -- Giá
+    --@supplierName = N'Nhà cung cấp C'; -- Tên nhà cung cấp
 ---------------------------------------------------------
 --Thủ tục delete nguyên liệu có id là x
 CREATE PROCEDURE dbo.DeleteNguyenLieu
-    @id INT, -- ID của nguyên liệu cần xóa
-	@managerId INT,
-    @storeId INT
+    @id INT -- ID của nguyên liệu cần xóa
 AS
 BEGIN
     -- Khởi tạo transaction
-	EXEC [sys].[sp_set_session_context] @key = N'managerId', @value = @managerId;
-    EXEC [sys].[sp_set_session_context] @key = N'storeId', @value = @storeId;
     BEGIN TRY
         BEGIN TRANSACTION;
 
@@ -675,10 +582,9 @@ BEGIN
     END CATCH
 END;
 GO
-/*EXEC dbo.DeleteNguyenLieu
-    @id = 109,
-	@managerId = 1,
-    @storeId = 1;*/
+--EXEC dbo.DeleteNguyenLieu
+    --@id = 55;  -- ID của nguyên liệu cần xóa
+
 --thủ tục lấy doanh thu theo năm/ tháng của 1 cửa hàng
 CREATE PROCEDURE GetMonthlyRevenueByStore
     @storeId INT
@@ -724,7 +630,9 @@ BEGIN
     VALUES (@Email, @HashedPassword, @StoreId, @Role);
 END
 GO
-
+-- Thêm một tài khoản mới vào bảng Auth
+--EXEC AddAccount @Email = 'user@example.com', @Password = 'password123', @StoreId = 1, @Role= 'User';
+--EXEC AddAccount @Email = 'admin@example.com', @Password = 'password', @StoreId = 1, @Role= 'Admin';
 CREATE PROCEDURE GetPasswordAndStoreIdByEmail
     @Email NVARCHAR(100),
     @Password NVARCHAR(255) -- Mật khẩu người dùng nhập vào
@@ -811,13 +719,13 @@ GO
 --    @quantities = '2,3,1';
 
 --create procedure
-CREATE PROC [dbo].[CapNhatNguyenLieu] (
+CREATE PROC [dbo].[CapNhatNguyenLieu](
     @id INT,
     @name NVARCHAR(1000),
     @type NVARCHAR(500),
     @buyDate DATETIME2,
     @endDate DATETIME2,
-    @number DECIMAL(10, 2), -- Tăng độ chính xác nếu cần số lượng lớn hơn
+    @number DECIMAL(5,2),
     @unit NVARCHAR(20),
     @cost MONEY,
     @managerId INT,
@@ -825,31 +733,21 @@ CREATE PROC [dbo].[CapNhatNguyenLieu] (
 )
 AS
 BEGIN
-    -- Set session context for managerId and storeId
-    EXEC [sys].[sp_set_session_context] @key = N'managerId', @value = @managerId;
+    -- Update the NguyenLieu table
+	EXEC [sys].[sp_set_session_context] @key = N'managerId', @value = @managerId;
     EXEC [sys].[sp_set_session_context] @key = N'storeId', @value = @storeId;
 
-    -- Insert data into the NguyenLieu table
-    INSERT INTO [dbo].[NguyenLieu] (
-        [name],
-        [type],
-        [buyDate],
-        [endDate],
-        [number],
-        [unit],
-        [cost]
-    )
-    VALUES (
-        @name,
-        @type,
-        @buyDate,
-        @endDate,
-        @number,
-        @unit,
-        @cost
-    );
+    UPDATE [dbo].[NguyenLieu] 
+    SET 
+        [name] = @name, 
+        [type] = @type, 
+        [buyDate] = @buyDate, 
+        [endDate] = @endDate, 
+        [number] = @number, 
+        [unit] = @unit, 
+        [cost] = @cost
+    WHERE [dbo].[NguyenLieu].[id] = @id;
 END
-GO
 GO
 /*
  EXEC [dbo].[CapNhatNguyenLieu]
@@ -944,122 +842,3 @@ BEGIN
     END
 END;
 GO
-
-/*CREATE PROC [dbo].[UpdateEmployee]
-(
-    @employeeId INT,
-    @name NVARCHAR(255),
-    @birthday DATE,
-    @salary DECIMAL(18, 2),
-    @startDate DATE,
-    @phone NVARCHAR(15),
-    @role NVARCHAR(50),
-    @dayOff INT,
-    @degree NVARCHAR(255), -- Dành cho quản lý
-    @trainingTime INT,     -- Dành cho bán hàng
-    @experience NVARCHAR(255), -- Dành cho chế biến
-    @roleInCooking NVARCHAR(255) -- Vai trò trong chế biến
-)
-RETURNS NVARCHAR(50)
-AS
-BEGIN
-    -- Sửa thông tin trong bảng NhanVien
-    UPDATE dbo.NhanVien
-    SET 
-        name = @name,
-        birthday = @birthday,
-        salary = @salary,
-        startDate = @startDate,
-        phone = @phone,
-        role = @role,
-        dayOff = @dayOff
-    WHERE id = @employeeId;
-
-    -- Sửa thông tin trong bảng Quản Lý nếu có degree
-    IF @degree IS NOT NULL 
-    BEGIN
-        IF EXISTS (SELECT 1 FROM dbo.QuanLy WHERE id = @employeeId)
-            UPDATE dbo.QuanLy SET degree = @degree WHERE id = @employeeId;
-        ELSE
-            INSERT INTO dbo.QuanLy (id, degree) VALUES (@employeeId, @degree);
-    END
-
-    -- Sửa thông tin trong bảng Bán Hàng nếu có trainingTime
-    IF @trainingTime IS NOT NULL 
-    BEGIN
-        IF EXISTS (SELECT 1 FROM dbo.BanHang WHERE id = @employeeId)
-            UPDATE dbo.BanHang SET trainingTime = @trainingTime WHERE id = @employeeId;
-        ELSE
-            INSERT INTO dbo.BanHang (id, trainingTime) VALUES (@employeeId, @trainingTime);
-    END
-
-    -- Sửa thông tin trong bảng Chế Biến nếu có kinh nghiệm hoặc vai trò
-    IF @experience IS NOT NULL OR @roleInCooking IS NOT NULL
-    BEGIN
-        IF EXISTS (SELECT 1 FROM dbo.CheBien WHERE id = @employeeId)
-            UPDATE dbo.CheBien 
-            SET kinhNghiem = @experience, vaiTro = @roleInCooking 
-            WHERE id = @employeeId;
-        ELSE
-            INSERT INTO dbo.CheBien (id, kinhNghiem, vaiTro) VALUES (@employeeId, @experience, @roleInCooking);
-    END
-
-    RETURN N'Employee updated successfully';
-END;
-GO*/
-CREATE PROC [dbo].[AddEmployee]
-(
-    @name NVARCHAR(255),
-    @birthday DATE,
-    @salary DECIMAL(18, 2),
-    @startDate DATE,
-    @phone NVARCHAR(15),
-    @role NVARCHAR(50),
-    @dayOff INT,
-    @degree NVARCHAR(255), -- Dành cho quản lý
-    @trainingTime INT,     -- Dành cho bán hàng
-    @experience NVARCHAR(255), -- Dành cho chế biến
-    @roleInCooking NVARCHAR(255), -- Vai trò trong chế biến
-    @storeID INT, -- Added storeID parameter
-    @employeeId INT OUTPUT -- OUTPUT parameter to return the employee's ID
-)
-AS
-BEGIN
-    -- Thêm vào bảng NhanVien, bao gồm storeID
-    INSERT INTO dbo.NhanVien (name, birthday, salary, startDate, phone, role, dayOff, storeID)
-    VALUES (@name, @birthday, @salary, @startDate, @phone, @role, @dayOff, @storeID);
-
-    SET @employeeId = SCOPE_IDENTITY(); -- Lấy ID nhân viên vừa thêm
-
-    -- Kiểm tra và thêm vào từng bộ phận
-    IF @degree IS NOT NULL 
-        INSERT INTO dbo.QuanLy (id, degree) VALUES (@employeeId, @degree);
-
-    IF @trainingTime IS NOT NULL 
-        INSERT INTO dbo.BanHang (id, trainingTime) VALUES (@employeeId, @trainingTime);
-
-    IF @experience IS NOT NULL OR @roleInCooking IS NOT NULL
-        INSERT INTO dbo.CheBien (id, kinhNghiem, vaiTro) VALUES (@employeeId, @experience, @roleInCooking);
-END;
-GO
-DECLARE @newEmployeeId INT;
-
--- Call the stored procedure and get the new employee ID
-EXEC [dbo].[AddEmployee] 
-    @name = 'John Doe',
-    @birthday = '1990-01-01',
-    @salary = 50000.00,
-    @startDate = '2024-01-01',
-    @phone = '1234567890',
-    @role = 'Bán hàng',
-    @dayOff = 2,
-    @degree = NULL,
-    @trainingTime = 10,
-    @experience = NULL,
-    @roleInCooking = NULL,
-    @storeID = 1, -- Specify the storeID
-    @employeeId = @newEmployeeId OUTPUT;
-
--- Output the new employee's ID
-SELECT @newEmployeeId AS NewEmployeeId;
-

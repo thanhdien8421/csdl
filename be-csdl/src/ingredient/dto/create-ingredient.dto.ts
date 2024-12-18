@@ -38,4 +38,9 @@ export class CreateIngredientDto {
 
   @IsString()
   supplierName: string;
+
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  managerId?: number;
 }

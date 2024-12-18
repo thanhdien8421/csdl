@@ -32,7 +32,8 @@ export class IngredientService {
             ${createIngredientDto.number},
             ${createIngredientDto.unit},
             ${createIngredientDto.cost},
-            ${createIngredientDto.supplierName}
+            ${createIngredientDto.supplierName},
+            ${createIngredientDto.managerId}
         `
       );
       return result[0]?.ingredientId;
@@ -45,7 +46,7 @@ export class IngredientService {
       // Xóa nguyên liệu khỏi cơ sở dữ liệu
       const deleted = await this.prismaService.$queryRaw(
         Prisma.sql`
-          EXEC dbo.DeleteNguyenLieu ${id}
+          EXEC dbo.DeleteNguyenLieu ${id}, ${1}, ${1}
         `);
   
       return true;
@@ -68,7 +69,9 @@ export class IngredientService {
           ${updateData.number},
           ${updateData.unit},
           ${updateData.cost},
-          ${updateData.supplierName}
+          ${updateData.supplierName},
+          ${updateData.managerId},
+          ${1}
         `);
   
       return true;

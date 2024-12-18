@@ -1,4 +1,4 @@
-"use client"
+'use client';
 import { FC, useState, useRef, useEffect } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -27,8 +27,20 @@ const materialSchema = z.object({
   cost: z.number().positive({ message: "Giá phải lớn hơn 0!" }),
   supplierName: z.string().min(1, { message: "Nhà cung cấp không được để trống!" }),
 });
-
+// const addMaterialSchema = z.object({
+//   id: z.number(),
+//   name: z.string().min(1, { message: "Tên nguyên vật liệu không được để trống!" }),
+//   type: z.string().min(1, { message: "Loại nguyên vật liệu không được để trống!" }),
+//   buyDate: z.string().min(1, { message: "Ngày mua không được để trống!" }),
+//   endDate: z.string().min(1, { message: "Ngày hết hạn không được để trống!" }),
+//   number: z.number().positive({ message: "Số lượng phải lớn hơn 0!" }),
+//   unit: z.string().min(1, { message: "Phải có đơn vị" }),
+//   cost: z.number().positive({ message: "Giá phải lớn hơn 0!" }),
+//   supplierName: z.string().min(1, { message: "Nhà cung cấp không được để trống!" }),
+//   storeId: z.number().int().nonnegative().refine(val => val !== 0, { message: "storeId cannot be empty" }),
+// });
 type Material = z.infer<typeof materialSchema>;
+// type addMaterial = z.infer<typeof addMaterialSchema>;
 interface addMaterial {
   id: number;
   name: string;
@@ -161,7 +173,8 @@ const Materials: FC = () => {
           number: newMaterial.number,
           unit: newMaterial.unit,
           cost: newMaterial.cost,
-          supplierName: newMaterial.supplierName          
+          supplierName: newMaterial.supplierName,
+          managerId: 1,          
         }); // Gửi dữ liệu tới backend
       const addedMaterial = response.data.data; // Dữ liệu nguyên liệu mới thêm từ server
       setMaterials([...materials, { ...newMaterial, id: addedMaterial } ]); // Cập nhật danh sách nguyên liệu với nguyên liệu mới thêm
@@ -216,9 +229,10 @@ const Materials: FC = () => {
         number: editingMaterial.number,
         unit: editingMaterial.unit,
         cost: editingMaterial.cost,
-        supplierName: editingMaterial.supplierName
+        supplierName: editingMaterial.supplierName,
+        managerId: 1,
+        storeid: 1
       }); 
-  
       // Nếu server trả về thành công, ta sẽ cập nhật lại danh sách nguyên liệu
       if ( response.status === 200) {
         setMaterials(

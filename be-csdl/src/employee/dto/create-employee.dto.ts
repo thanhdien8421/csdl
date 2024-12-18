@@ -6,9 +6,10 @@ export class CreateEmployeeDto {
   name: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsDate()
   @IsPositive()
-  age?: number;
+  @Type(() => Date)
+  birthday?: Date;
 
   @IsOptional()
   @IsNumber()
@@ -26,7 +27,7 @@ export class CreateEmployeeDto {
 
   @IsOptional()
   @IsString()
-  role: string;
+  role?: string;
 
   @IsOptional()
   @IsInt()
@@ -36,5 +37,22 @@ export class CreateEmployeeDto {
   @IsOptional()
   @IsInt()
   @IsPositive()
-  storeId: number;
+  storeId?: number;
+
+  // Các trường liên quan đến GetEmployeeFullInfo
+  @IsOptional()
+  @IsString()
+  degree?: string; // Tương ứng với degree trong hàm SQL
+
+  @IsOptional()
+  @IsString()
+  trainingTime?: string; // Tương ứng với trainingTime trong hàm SQL
+
+  @IsOptional()
+  @IsString()
+  kinhNghiem?: string; // Tương ứng với kinhNghiem trong hàm SQL
+
+  @IsOptional()
+  @IsString()
+  roleInCooking?: string; // Tương ứng với vaiTro trong hàm SQL
 }
